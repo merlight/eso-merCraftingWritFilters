@@ -4,6 +4,7 @@ local PlayerInventory = PLAYER_INVENTORY
 
 local g_playerName = nil
 local g_craftingQuests = {}
+local g_parsingTests = {}
 
 local getItemNameFromCondition
 
@@ -31,6 +32,16 @@ if Language == "de" then
             :lower()
     end
     ZO_CreateStringId("SI_MERCRAFTINGWRITFILTERS_TABTITLE", "Schrieb")
+    -- alchemy examples
+    g_parsingTests["Beschafft natürliches Wasser"] = "natürliches wasser"
+    g_parsingTests["Besorgt etwas Drachendorn"] = "drachendorn"
+    g_parsingTests["Stellt ein Schlückchen der Ausdauerverwüstung her"] = "schlückchen der ausdauerverwüstung"
+    g_parsingTests["Stellt eine Lösung des Lebens her"] = "lösung des lebens"
+    -- enchanting examples
+    g_parsingTests["Beschafft eine Hade-Machtrune"] = "hade"
+    g_parsingTests["Stellt eine starke Glyphe des Lebens her"] = "starke glyphe des lebens"
+    -- provisioning examples
+    g_parsingTests["Stellt etwas Karottensuppe her"] = "karottensuppe"
 
 elseif Language == "fr" then
     local verbs = {["Acquérez"] = "", ["Fabriquez"] = "", ["Préparez"] = ""}
@@ -41,11 +52,23 @@ elseif Language == "fr" then
         return what and what
             :gsub("^(%u%S+) ", verbs, 1)        -- strip leading verb
             :gsub("^(%l+) ", articles, 1)       -- strip article
+            :gsub("^l'", "", 1)                 -- strip pronoun
             :lower()
             :gsub("^rune de?[ '](%a+) ", runes) -- strip rune type
             :gsub("\194\160: %d+/%d+$", "")     -- strip have/need counts
     end
     ZO_CreateStringId("SI_MERCRAFTINGWRITFILTERS_TABTITLE", "Commande")
+    -- alchemy examples
+    g_parsingTests["Acquérez de l'eau Naturelle"] = "eau naturelle"
+    g_parsingTests["Acquérez une Épine-de-Dragon"] = "épine-de-dragon"
+    g_parsingTests["Préparez une Gorgée de Ravage de Vigueur"] = "gorgée de ravage de vigueur"
+    g_parsingTests["Préparez une Solution de Santé"] = "solution de santé"
+    -- enchanting examples
+    g_parsingTests["Acquérez une Rune de Puissance Hade"] = "hade"
+    g_parsingTests["Fabriquez un Glyphe Fort Vital"] = "glyphe fort vital"
+    -- provisioning examples
+    g_parsingTests["Préparez un Pain de Maïs Cyrodiiléen"] = "pain de maïs cyrodiiléen"
+    g_parsingTests["Préparez une Soupe de Carottes"] = "soupe de carottes"
 
 else
     local verbs = {["Acquire"] = "", ["Craft"] = ""}
@@ -206,6 +229,12 @@ local function onAddOnLoaded(eventCode, addOnName)
     --[[
     SLASH_COMMANDS["/dbgwrit"] = function(args)
         df("----------  %s  ----------", myNAME)
+        for conditionText, expectedItemName in next, g_parsingTests do
+            local parsedItemName = getItemNameFromCondition(conditionText)
+            local color = (parsedItemName == expectedItemName and "33ff33" or "ff3333")
+            df("|c%stest %q|r", color, conditionText)
+            df("|c%s-> %q|r", color, parsedItemName)
+        end
         for questName, questConditions in next, g_craftingQuests do
             df("quest %q : %d", questName, NonContiguousCount(questConditions))
             for itemName, neededCount in next, questConditions do
