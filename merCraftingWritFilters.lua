@@ -179,7 +179,7 @@ local function onPlayerActivated(eventCode)
     -- run only once
     EVENT_MANAGER:UnregisterForEvent(myNAME, eventCode)
 
-    for questIndex = 1, GetNumJournalQuests() do
+    for questIndex = 1, MAX_JOURNAL_QUESTS do
         if GetJournalQuestType(questIndex) == QUEST_TYPE_CRAFTING then
             local questName = GetJournalQuestInfo(questIndex)
             g_craftingQuests[questName] = getQuestConditions(questIndex)
