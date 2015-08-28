@@ -84,27 +84,62 @@ else
 end
 
 
-local g_itemTypeRequiresCreation = {
-    [ITEMTYPE_GLYPH_ARMOR] = true,
-    [ITEMTYPE_GLYPH_JEWELRY] = true,
-    [ITEMTYPE_GLYPH_WEAPON] = true,
-    [ITEMTYPE_ARMOR] = true,
-    [ITEMTYPE_WEAPON] = true,
+local g_itemTypeRequiresCrafter = {
+    [ITEMTYPE_POISON] = "anyone",
+    [ITEMTYPE_POTION] = "anyone",
+    [ITEMTYPE_GLYPH_ARMOR] = "myself",
+    [ITEMTYPE_GLYPH_JEWELRY] = "myself",
+    [ITEMTYPE_GLYPH_WEAPON] = "myself",
+    [ITEMTYPE_ARMOR] = "myself",
+    [ITEMTYPE_WEAPON] = "myself",
+}
+
+local g_itemTypeRequiresQuality = {
+    [ITEMTYPE_ALCHEMY_BASE] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_REAGENT] = ITEM_QUALITY_MAGIC,
+    [ITEMTYPE_POISON] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_POTION] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_FOOD] = ITEM_QUALITY_MAGIC,
+    [ITEMTYPE_DRINK] = ITEM_QUALITY_MAGIC,
+    [ITEMTYPE_ENCHANTING_RUNE_ASPECT] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_ENCHANTING_RUNE_ESSENCE] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_ENCHANTING_RUNE_POTENCY] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_GLYPH_ARMOR] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_GLYPH_JEWELRY] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_GLYPH_WEAPON] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_ARMOR] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_WEAPON] = ITEM_QUALITY_NORMAL,
 }
 
 local function isItemNeededForWrit(slot)
-    local slotItemName = slot.name:lower()
-    for questName, questConditions in next, g_craftingQuests do
-        for conditionItemName, neededCount in next, questConditions do
-            if conditionItemName == slotItemName then
-                if not g_itemTypeRequiresCreation[slot.itemType] then
-                    return true
-                elseif g_playerName == GetItemCreatorName(slot.bagId, slot.slotIndex) then
-                    return true
-                end
-            end
+    -- filter on item quality first, should be the most efficient
+
+    local requiredQuality = g_itemTypeRequiresQuality[slot.itemType]
+    if requiredQuality ~= slot.quality then
+        return false
+    end
+
+    local requiredCrafter = g_itemTypeRequiresCrafter[slot.itemType]
+    if requiredCrafter == "myself" then
+        local creator = GetItemCreatorName(slot.bagId, slot.slotIndex)
+        if creator ~= g_playerName then
+            return false
+        end
+    elseif requiredCrafter == "anyone" then
+        local itemLink = GetItemLink(slot.bagId, slot.slotIndex)
+        local potionEffects = select(24, ZO_LinkHandler_ParseLink(itemLink))
+        if potionEffects == "0" then
+            return false
         end
     end
+
+    local itemName = slot.name:lower()
+    for questName, questConditions in next, g_craftingQuests do
+        if questConditions[itemName] then
+            return true
+        end
+    end
+
     return false
 end
 
