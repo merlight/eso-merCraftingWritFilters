@@ -97,8 +97,8 @@ local g_itemTypeRequiresCrafter = {
 local g_itemTypeRequiresQuality = {
     [ITEMTYPE_ALCHEMY_BASE] = ITEM_QUALITY_NORMAL,
     [ITEMTYPE_REAGENT] = ITEM_QUALITY_MAGIC,
-    [ITEMTYPE_POISON] = ITEM_QUALITY_NORMAL,
-    [ITEMTYPE_POTION] = ITEM_QUALITY_NORMAL,
+    [ITEMTYPE_POISON] = false, -- meaning ignore, for compatibility with add-ons
+    [ITEMTYPE_POTION] = false, -- overriding crafted potions' apparent quality
     [ITEMTYPE_FOOD] = ITEM_QUALITY_MAGIC,
     [ITEMTYPE_DRINK] = ITEM_QUALITY_MAGIC,
     [ITEMTYPE_ENCHANTING_RUNE_ASPECT] = ITEM_QUALITY_NORMAL,
@@ -115,7 +115,7 @@ local function isItemNeededForWrit(slot)
     -- filter on item quality first, should be the most efficient
 
     local requiredQuality = g_itemTypeRequiresQuality[slot.itemType]
-    if requiredQuality ~= slot.quality then
+    if requiredQuality ~= false and requiredQuality ~= slot.quality then
         return false
     end
 
