@@ -250,16 +250,103 @@ local function onQuestRemoved(eventCode, isCompleted, questIndex, questName)
 end
 
 
+local g_assistedTextureWasHidden = nil
+local g_conditionMinWidth = 0
+local g_headerMinWidth = 0
+local g_questNameToCraftingType =
+{
+    -- English
+    ["Alchemist Writ"] = CRAFTING_TYPE_ALCHEMY,
+    ["Blacksmith Writ"] = CRAFTING_TYPE_BLACKSMITHING,
+    ["Clothier Writ"] = CRAFTING_TYPE_CLOTHIER,
+    ["Enchanter Writ"] = CRAFTING_TYPE_ENCHANTING,
+    ["Provisioner Writ"] = CRAFTING_TYPE_PROVISIONING,
+    ["Woodworker Writ"] = CRAFTING_TYPE_WOODWORKING,
+    -- German
+    ["Alchemistenschrieb"] = CRAFTING_TYPE_ALCHEMY,
+    ["Schmiedeschrieb"] = CRAFTING_TYPE_BLACKSMITHING,
+    ["Schneiderschrieb"] = CRAFTING_TYPE_CLOTHIER,
+    ["Verzaubererschrieb"] = CRAFTING_TYPE_ENCHANTING,
+    ["Versorgerschrieb"] = CRAFTING_TYPE_PROVISIONING,
+    ["Schreinerschrieb"] = CRAFTING_TYPE_WOODWORKING,
+    -- French
+    ["Commande d'alchimie"] = CRAFTING_TYPE_ALCHEMY,
+    ["Commande de forge"] = CRAFTING_TYPE_BLACKSMITHING,
+    ["Commande de tailleur"] = CRAFTING_TYPE_CLOTHIER,
+    ["Commandes d'enchantement"] = CRAFTING_TYPE_ENCHANTING,
+    ["Commande de cuisine"] = CRAFTING_TYPE_PROVISIONING,
+    ["Commande de travail du bois"] = CRAFTING_TYPE_WOODWORKING,
+}
+
+
+local function hookQuestTrackerPools(tracker)
+    ZO_PreHook(tracker.headerPool, "customAcquireBehavior", function(control)
+        control:SetDimensionConstraints(g_headerMinWidth, 0, 0, 0)
+    end)
+    ZO_PreHook(tracker.conditionPool, "customAcquireBehavior", function(control)
+        control:SetDimensionConstraints(g_conditionMinWidth, 0, 0, 0)
+    end)
+end
+
+
+local function setQuestTrackerEntriesMinWidth(tracker, headerWidth, conditionWidth)
+    g_headerMinWidth = headerWidth
+    g_conditionMinWidth = conditionWidth
+    for _, header in next, tracker.headerPool:GetActiveObjects() do
+        header:SetDimensionConstraints(headerWidth, 0, 0, 0)
+    end
+    for _, condition in next, tracker.conditionPool:GetActiveObjects() do
+        condition:SetDimensionConstraints(conditionWidth, 0, 0, 0)
+    end
+end
+
+
+local function onCraftingStationInteract(eventCode, craftSkill, sameStation)
+    for questIndex = 1, MAX_JOURNAL_QUESTS do
+        if GetJournalQuestType(questIndex) == QUEST_TYPE_CRAFTING then
+            local questName = GetJournalQuestInfo(questIndex)
+            if g_questNameToCraftingType[questName] == craftSkill then
+                QUEST_TRACKER:ForceAssist(questIndex) -- focus this quest
+                SCENE_MANAGER:AddFragment(FOCUSED_QUEST_TRACKER_FRAGMENT)
+                FOCUSED_QUEST_TRACKER_FRAGMENT:SetHiddenForReason("DisabledBySetting", false)
+                local tracker = FOCUSED_QUEST_TRACKER
+                g_assistedTextureWasHidden = tracker.assistedTexture:IsHidden()
+                tracker.assistedTexture:SetHidden(true)
+                tracker.trackerControl:ClearAnchors()
+                tracker.trackerControl:SetAnchor(BOTTOMLEFT, ZO_SharedRightPanelBackground, TOPLEFT, 35, -35)
+                setQuestTrackerEntriesMinWidth(tracker, 522, 512)
+                return
+            end
+        end
+    end
+end
+
+
+local function onCraftingStationLeave(eventCode, craftSkill)
+    if g_assistedTextureWasHidden ~= nil then
+        local tracker = FOCUSED_QUEST_TRACKER
+        tracker.assistedTexture:SetHidden(g_assistedTextureWasHidden)
+        g_assistedTextureWasHidden = nil
+        setQuestTrackerEntriesMinWidth(tracker, 0, 0)
+        tracker:ApplyPlatformStyle() -- restore control anchors and widths
+        tracker:UpdateVisibility() -- hide fragment if DisabledBySetting
+    end
+end
+
+
 local function onAddOnLoaded(eventCode, addOnName)
     if addOnName ~= myNAME then return end
     EVENT_MANAGER:UnregisterForEvent(myNAME, eventCode)
 
     g_playerName = GetUnitName("player")
+    hookQuestTrackerPools(FOCUSED_QUEST_TRACKER)
 
     EVENT_MANAGER:RegisterForEvent(myNAME, EVENT_PLAYER_ACTIVATED, onPlayerActivated)
     EVENT_MANAGER:RegisterForEvent(myNAME, EVENT_QUEST_ADDED, onQuestAdded)
     EVENT_MANAGER:RegisterForEvent(myNAME, EVENT_QUEST_CONDITION_COUNTER_CHANGED, onQuestChanged)
     EVENT_MANAGER:RegisterForEvent(myNAME, EVENT_QUEST_REMOVED, onQuestRemoved)
+    EVENT_MANAGER:RegisterForEvent(myNAME, EVENT_CRAFTING_STATION_INTERACT, onCraftingStationInteract)
+    EVENT_MANAGER:RegisterForEvent(myNAME, EVENT_END_CRAFTING_STATION_INTERACT, onCraftingStationLeave)
 
     --[[
     SLASH_COMMANDS["/dbgwrit"] = function(args)
