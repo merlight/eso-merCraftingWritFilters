@@ -5,6 +5,6 @@
 
 ## Title: |ce5ca5cMer|r Crafting Writ Filters
 ## Author: Merlight
-## APIVersion: 100011
+## APIVersion: 100013
 
 merCraftingWritFilters.lua
