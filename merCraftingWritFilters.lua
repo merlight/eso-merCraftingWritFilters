@@ -144,14 +144,14 @@ local function isItemNeededForWrit(slot)
 end
 
 
-local function addBankFilter()
-    local inventory = PlayerInventory.inventories[INVENTORY_BANK]
+local function addInventoryFilter(inventoryType)
+    local inventory = PlayerInventory.inventories[inventoryType]
     local filterString = GetString(SI_MERCRAFTINGWRITFILTERS_TABTITLE)
     local tabData =
     {
         -- Inventory manager data
         filterType = isItemNeededForWrit,
-        inventoryType = INVENTORY_BANK,
+        inventoryType = inventoryType,
         hiddenColumns = {age = true, statValue = true},
         activeTabText = filterString,
         tooltipText = filterString,
@@ -179,8 +179,8 @@ end
 
 
 local function updateBankFilters()
-    local inventory = PlayerInventory.inventories[INVENTORY_BANK]
-    ZO_MenuBar_UpdateButtons(inventory.filterBar)
+    ZO_MenuBar_UpdateButtons(PlayerInventory.inventories[INVENTORY_BANK].filterBar)
+    ZO_MenuBar_UpdateButtons(PlayerInventory.inventories[INVENTORY_GUILD_BANK].filterBar)
 end
 
 
@@ -221,7 +221,8 @@ local function onPlayerActivated(eventCode)
         end
     end
 
-    addBankFilter()
+    addInventoryFilter(INVENTORY_BANK)
+    addInventoryFilter(INVENTORY_GUILD_BANK)
 end
 
 
